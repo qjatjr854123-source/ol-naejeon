@@ -1111,6 +1111,10 @@ window._fbListen = function(cb) {
     if (data) cb(data);
   });
 };
+
+// Firebase 준비 완료 알림
+window._fbReady = true;
+document.dispatchEvent(new Event('fbReady'));
 </script>
 <script>
 /* ═══ 파티클 배경 ═══ */
@@ -1178,22 +1182,29 @@ function fixData(){
   D.games=D.games.filter(function(g){return g&&g.id&&g.players&&g.players.length;});
   D.games.forEach(function(g){if(!g.bans)g.bans=[];});
 }
+function startFbListen(){
+  window._fbListen(function(data){
+    D=data;fixData();
+    var curPage=null;
+    document.querySelectorAll('.nav').forEach(function(b,i){if(b.classList.contains('on'))curPage=['notice','join','assign','record','lb','members'][i];});
+    if(curPage)go(curPage);else go('notice');
+    updTop();
+  });
+}
 function load(){
-  // Firebase 실시간 동기화
-  if(window._fbListen){
-    window._fbListen(function(data){
-      D=data;fixData();
-      var curPage=null;
-      document.querySelectorAll('.nav').forEach(function(b,i){if(b.classList.contains('on'))curPage=['notice','join','assign','record','lb','members'][i];});
-      if(curPage)go(curPage);else go('notice');
-      updTop();
-    });
-  }
-  // 로컬 fallback
+  // 로컬 fallback 먼저
   try{var r=localStorage.getItem(SK);if(r)D=JSON.parse(r);}catch(e){}
   fixData();
   adminLogged=false;
   init();
+  // Firebase 실시간 동기화
+  if(window._fbReady){
+    startFbListen();
+  } else {
+    document.addEventListener('fbReady', function(){
+      startFbListen();
+    }, {once:true});
+  }
 }
 function save(){
   if(window._fbSave){window._fbSave(D);}

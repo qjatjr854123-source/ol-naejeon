@@ -1182,9 +1182,15 @@ function fixData(){
   D.games=D.games.filter(function(g){return g&&g.id&&g.players&&g.players.length;});
   D.games.forEach(function(g){if(!g.bans)g.bans=[];});
 }
+var _fbFirstLoad=true;
 function startFbListen(){
   window._fbListen(function(data){
     D=data;fixData();
+    if(_fbFirstLoad){
+      _fbFirstLoad=false;
+      init();
+      return;
+    }
     var curPage=null;
     document.querySelectorAll('.nav').forEach(function(b,i){if(b.classList.contains('on'))curPage=['notice','join','assign','record','lb','members'][i];});
     if(curPage)go(curPage);else go('notice');
@@ -1192,15 +1198,16 @@ function startFbListen(){
   });
 }
 function load(){
-  // 로컬 fallback 먼저
-  try{var r=localStorage.getItem(SK);if(r)D=JSON.parse(r);}catch(e){}
   fixData();
   adminLogged=false;
-  init();
-  // Firebase 실시간 동기화
+  // Firebase 우선 — 준비되면 Firebase 데이터로 시작
   if(window._fbReady){
     startFbListen();
   } else {
+    // Firebase 로드 전 임시로 로컬 데이터로 화면 표시
+    try{var r=localStorage.getItem(SK);if(r)D=JSON.parse(r);}catch(e){}
+    fixData();
+    init();
     document.addEventListener('fbReady', function(){
       startFbListen();
     }, {once:true});
